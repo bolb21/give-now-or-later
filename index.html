@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Give Now or Later</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a two-pane "statement" — questions on the left, a live ledger-style verdict on the right; stacks on phones. */
+:root {
+  --bg: #f3f5f4;
+  --surface: #ffffff;
+  --ink: #17252b;
+  --muted: #5b6b70;
+  --line: #d7dfdd;
+  --now: #b5532a;      /* give now */
+  --later: #1f7a64;    /* invest, give later */
+  --close: #8a6d12;
+  --chip: #e8eeec;
+  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1719; --surface: #172327; --ink: #e6eeec; --muted: #9aaeb0; --line: #2a3a3e;
+    --now: #e98a5e; --later: #4fc4a3; --close: #e0bf5a; --chip: #213035; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1719; --surface: #172327; --ink: #e6eeec; --muted: #9aaeb0; --line: #2a3a3e;
+  --now: #e98a5e; --later: #4fc4a3; --close: #e0bf5a; --chip: #213035; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; min-width: 0; }
+form { display: grid; gap: 22px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; min-width: 0; }
+legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+legend .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-right: 8px; }
+.hint { color: var(--muted); font-size: 14px; margin: -4px 0 0; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; }
+.row > label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); flex: 1 1 140px; }
+input[type=number], select {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt { position: relative; }
+.opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.opt span {
+  display: inline-block; padding: 7px 12px; border-radius: 999px; background: var(--chip); border: 1px solid transparent; font-size: 14px; cursor: pointer;
+}
+.opt input:checked + span { border-color: var(--ink); background: var(--surface); font-weight: 600; }
+.opt input:focus-visible + span, input:focus-visible, select:focus-visible { outline: 2px solid var(--later); outline-offset: 2px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.check input { margin-top: 4px; }
+.custom { max-width: 160px; }
+
+.result { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: grid; gap: 18px; }
+.verdict { border-left: 4px solid var(--v, var(--now)); padding: 4px 0 4px 14px; }
+.verdict .label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.verdict h2 { font-family: var(--font-display); font-weight: 400; font-size: 32px; margin: 2px 0 4px; color: var(--v, var(--now)); }
+.verdict p { margin: 0; }
+.ledger { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ledger td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ledger td:last-child { text-align: right; font-family: var(--font-mono); white-space: nowrap; padding-left: 12px; }
+.ledger tr:last-child td { border-bottom: 0; }
+.chart-wrap { overflow-x: auto; }
+svg text { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.key { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.key i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 6px; }
+.matters { background: var(--chip); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+details { font-size: 15px; }
+summary { cursor: pointer; font-weight: 600; }
+details .body { display: grid; gap: 10px; margin-top: 12px; max-width: 70ch; }
+code, .math { font-family: var(--font-mono); font-size: 13px; background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.math { display: block; padding: 10px 12px; overflow-x: auto; white-space: nowrap; }
+a { color: var(--later); }
+footer { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .verdict h2 { transition: color .2s; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Should you give now, or invest and give later?</h1>
+    <p>Answer five questions about your situation. The calculator compares giving to a top global health charity today with investing the money and giving the larger amount later, allowing for the chance you never get round to it.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="q-head">
+      <h2 id="q-head" class="sr" hidden>Your answers</h2>
+      <form id="f">
+        <fieldset>
+          <legend><span class="n">1</span>How much, and for how long?</legend>
+          <div class="row">
+            <label for="amount">Amount to give (£)
+              <input id="amount" type="number" min="1" step="50" value="1000">
+            </label>
+            <label for="years">Years you'd invest it
+              <input id="years" type="number" min="1" max="40" step="1" value="10">
+            </label>
+            <label for="age">Your age now
+              <input id="age" type="number" min="16" max="100" step="1" value="18">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">2</span>How would you invest it?</legend>
+          <p class="hint">Returns are after inflation. World shares returned about 5.2% a year above inflation from 1900 to 2024.</p>
+          <div class="opts" role="radiogroup">
+            <label class="opt"><input type="radio" name="r" value="0.01"><span>Cash savings · 1%</span></label>
+            <label class="opt"><input type="radio" name="r" value="0.03"><span>Balanced fund · 3%</span></label>
+            <label class="opt"><input type="radio" name="r" value="0.045" checked><span>Global shares in an ISA · 4.5%</span></label>
+            <label class="opt"><input type="radio" name="r" value="custom"><span>Custom</span></label>
+          </div>
+          <label for="rCustom" class="custom" hidden id="rCustomWrap">Custom real return (% a year)
+            <input id="rCustom" type="number" step="0.5" value="5">
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">3</span>How sure are you that you'll still give it later?</legend>
+          <p class="hint">Plans change. Surveys of committed donors find roughly 2–10% stop giving each year.</p>
+          <div class="opts" role="radiogroup">
+            <label class="opt"><input type="radio" name="d" value="0"><span>Absolutely certain · 0%/yr</span></label>
+            <label class="opt"><input type="radio" name="d" value="0.02"><span>Very sure · 2%/yr</span></label>
+            <label class="opt"><input type="radio" name="d" value="0.05" checked><span>Fairly sure · 5%/yr</span></label>
+            <label class="opt"><input type="radio" name="d" value="0.10"><span>Not sure · 10%/yr</span></label>
+          </div>
+          <label class="check" for="bigcosts"><input id="bigcosts" type="checkbox"> I expect big costs soon, like a house deposit or children (adds 3 points a year)</label>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">4</span>How will the cost of saving a life change?</legend>
+          <p class="hint">It could rise, as the cheapest opportunities get used up and poorer countries get richer. Or it could fall, as new tools like malaria vaccines and better research find cheaper ways to help. Rates are per year, after inflation.</p>
+          <div class="opts" role="radiogroup">
+            <label class="opt"><input type="radio" name="c" value="-0.02"><span>Gets cheaper · −2%/yr</span></label>
+            <label class="opt"><input type="radio" name="c" value="0"><span>Stays the same · 0%</span></label>
+            <label class="opt"><input type="radio" name="c" value="0.03" checked><span>Rises moderately · 3%/yr</span></label>
+            <label class="opt"><input type="radio" name="c" value="0.05"><span>Rises quickly · 5%/yr</span></label>
+            <label class="opt"><input type="radio" name="c" value="custom"><span>Custom</span></label>
+          </div>
+          <label for="cCustom" class="custom" hidden id="cCustomWrap">Custom change (% a year, negative if cheaper)
+            <input id="cCustom" type="number" step="0.5" value="-1">
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend><span class="n">5</span>What tax band are you in?</legend>
+          <p class="hint">Gift Aid adds 25%. Higher-rate taxpayers also claim back 20% of the gross gift, so each £1 of their own money gets about £1.67 to the charity.</p>
+          <div class="row">
+            <label for="taxNow">Now
+              <select id="taxNow"><option value="basic" selected>Basic rate</option><option value="higher">Higher rate</option></select>
+            </label>
+            <label for="taxLater">When you'd give later
+              <select id="taxLater"><option value="basic" selected>Basic rate</option><option value="higher">Higher rate</option></select>
+            </label>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+
+    <section class="panel result" aria-live="polite">
+      <div class="verdict" id="verdict">
+        <div class="label">Verdict</div>
+        <h2 id="vTitle">Give now</h2>
+        <p id="vText"></p>
+      </div>
+
+      <table class="ledger">
+        <tr><td>Lives saved if you give now</td><td id="oNow"></td></tr>
+        <tr><td>Expected lives saved if you invest, then give</td><td id="oLater"></td></tr>
+        <tr><td>Waiting achieves this share of giving now</td><td id="oRatio"></td></tr>
+        <tr><td>Return you'd need for waiting to break even</td><td id="oBreak"></td></tr>
+        <tr><td>Your age when you'd give the invested money</td><td id="oAge"></td></tr>
+      </table>
+
+      <div>
+        <div class="chart-wrap"><svg id="chart" viewBox="0 0 440 200" width="100%" role="img" aria-label="Chart of how waiting compares with giving now for 1 to 30 years"></svg></div>
+        <div class="key"><span><i style="background:var(--later)"></i>Waiting ÷ giving now</span><span><i style="background:var(--muted)"></i>Break-even (1.0)</span></div>
+      </div>
+
+      <div class="matters" id="matters"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <details>
+      <summary>How this works</summary>
+      <div class="body">
+        <p>Giving now saves <code>A × m_now ÷ C</code> lives, where A is the amount, m is the tax multiplier and C is the cost of saving a life (£4,000, in line with GiveWell's top charities at $3,500–$5,500).</p>
+        <p>Investing for T years gives an expected:</p>
+        <span class="math">A × (1+r)^T × (1−d)^T × m_later ÷ (C × (1+c)^T)</span>
+        <p>r is the real investment return, d is the yearly chance you stop giving, and c is how the cost of saving a life changes each year (negative if it gets cheaper). Everything is after inflation, so inflation cancels out. Waiting wins when the ratio of the two is above 1; within 10% either way, the calculator calls it close and suggests splitting.</p>
+        <p>Sources: <a href="https://www.jbs.cam.ac.uk/2025/report-stocks-have-far-outperformed-over-the-past-125-years/" target="_blank" rel="noopener">UBS Global Investment Returns Yearbook (via Cambridge JBS)</a>, <a href="https://www.givewell.org/charities/top-charities" target="_blank" rel="noopener">GiveWell top charities</a>, <a href="https://ea.greaterwrong.com/posts/eRQe4kkkH2pPzqvam/more-empirical-data-on-value-drift" target="_blank" rel="noopener">value drift estimates (EA Forum)</a>, <a href="https://www.gov.uk/donating-to-charity/gift-aid" target="_blank" rel="noopener">Gift Aid (GOV.UK)</a>, <a href="https://80000hours.org/podcast/episodes/phil-trammell-patient-philanthropy/" target="_blank" rel="noopener">Phil Trammell on patient philanthropy</a>.</p>
+        <p>This is a simple model for one donor. It leaves out knock-on benefits of helping people sooner, the chance that better opportunities are found later, and exchange rates.</p>
+      </div>
+    </details>
+  </section>
+
+  <footer>Built by Ollie Holgate as a Leaf Maths of Morality project. Not financial advice.</footer>
+</div>
+
+<script>
+(function () {
+  const C = 4000;
+  const $ = (id) => document.getElementById(id);
+  const f = $("f");
+  const mult = (band) => band === "higher" ? 1.25 / 0.75 : 1.25;
+
+  function inputs() {
+    const A = Math.max(1, +$("amount").value || 1000);
+    const T = Math.min(40, Math.max(1, Math.round(+$("years").value || 10)));
+    const rSel = f.querySelector('input[name="r"]:checked').value;
+    $("rCustomWrap").hidden = rSel !== "custom";
+    const r = rSel === "custom" ? (+$("rCustom").value || 0) / 100 : +rSel;
+    const d = Math.min(0.95, +f.querySelector('input[name="d"]:checked').value + ($("bigcosts").checked ? 0.03 : 0));
+    const cSel = f.querySelector('input[name="c"]:checked').value;
+    $("cCustomWrap").hidden = cSel !== "custom";
+    const c = Math.max(-0.5, cSel === "custom" ? (+$("cCustom").value || 0) / 100 : +cSel);
+    const age = Math.round(+$("age").value || 18);
+    return { A, T, r, d, c, age, mNow: mult($("taxNow").value), mLater: mult($("taxLater").value) };
+  }
+  const ratio = (p, T) => Math.pow((1 + p.r) * (1 - p.d) / (1 + p.c), T) * p.mLater / p.mNow;
+  const pct = (x, dp = 1) => (x * 100).toFixed(dp) + "%";
+
+  function render() {
+    const p = inputs();
+    const now = p.A * p.mNow / C;
+    const R = ratio(p, p.T);
+    const later = now * R;
+    const rStar = (1 + p.c) / (1 - p.d) * Math.pow(p.mNow / p.mLater, 1 / p.T) - 1;
+
+    let title, text, col;
+    if (R > 1.1) { title = "Invest, then give"; col = "var(--later)"; text = `Waiting does about ${Math.round((R - 1) * 100)}% more good in expectation, because your returns outpace the rising cost of saving a life even after allowing for the chance you stop giving.`; }
+    else if (R < 0.9) { title = "Give now"; col = "var(--now)"; text = `Giving now does about ${Math.round((1 / R - 1) * 100)}% more good. Over ${p.T} years, the chance you stop giving and the rising cost of saving a life outweigh your investment growth.`; }
+    else { title = "It's close"; col = "var(--close)"; text = "The two options are within 10% of each other. Splitting your donation between now and later is a reasonable choice."; }
+    $("verdict").style.setProperty("--v", col);
+    $("vTitle").textContent = title;
+    $("vText").textContent = text;
+    $("oNow").textContent = now.toFixed(2);
+    $("oLater").textContent = later.toFixed(2);
+    $("oRatio").textContent = Math.round(R * 100) + "%";
+    $("oBreak").textContent = rStar > 0.5 ? "over 50% a year" : rStar < 0 ? "any return wins" : pct(rStar) + " a year";
+    $("oAge").textContent = p.age + p.T;
+
+    // Which answer matters most: nudge each of r, d, c one percentage point in waiting's favour.
+    const base = R;
+    const effects = [
+      ["investment return", ratio({ ...p, r: p.r + 0.01 }, p.T) / base],
+      ["chance you stop giving", ratio({ ...p, d: Math.max(0, p.d - 0.01) }, p.T) / base],
+      ["view on how the cost of saving a life changes", ratio({ ...p, c: p.c - 0.01 }, p.T) / base]
+    ].sort((a, b) => b[1] - a[1]);
+    const share = Math.round((1 - p.d) ** p.T * 100);
+    $("matters").innerHTML = `<strong>What matters most:</strong> a 1 point change in your <strong>${effects[0][0]}</strong> moves the answer furthest (about ${Math.round((effects[0][1] - 1) * 100)}%). With your answers, there's about a ${share}% chance you're still giving after ${p.T} years.`;
+
+    drawChart(p);
+  }
+
+  function drawChart(p) {
+    const W = 440, H = 200, L = 40, Rm = 12, Tp = 12, B = 30, maxT = 30;
+    const vals = [];
+    for (let t = 0; t <= maxT; t++) vals.push(ratio(p, t) * (t === 0 ? 1 : 1));
+    vals[0] = p.mLater / p.mNow;
+    let top = Math.max(1.5, ...vals); top = Math.ceil(top * 2) / 2; if (top > 4) top = 4;
+    const x = (t) => L + (t / maxT) * (W - L - Rm);
+    const y = (v) => Tp + (1 - Math.min(v, top) / top) * (H - Tp - B);
+    let s = "";
+    const steps = top <= 2 ? 0.5 : 1;
+    for (let v = 0; v <= top + 1e-9; v += steps) {
+      s += `<line x1="${L}" x2="${W - Rm}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+      s += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
+    }
+    [0, 10, 20, 30].forEach(t => { s += `<text x="${x(t)}" y="${H - 10}" text-anchor="middle">${t}y</text>`; });
+    s += `<line x1="${L}" x2="${W - Rm}" y1="${y(1)}" y2="${y(1)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+    const pts = vals.map((v, t) => `${x(t).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    s += `<polyline points="${pts}" fill="none" stroke="var(--later)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    const tSel = Math.min(p.T, maxT);
+    s += `<circle cx="${x(tSel)}" cy="${y(vals[tSel])}" r="4.5" fill="var(--later)" stroke="var(--surface)" stroke-width="2"/>`;
+    $("chart").innerHTML = s;
+  }
+
+  f.addEventListener("input", render);
+  f.addEventListener("change", render);
+  render();
+})();
+</script>
+</body>
+</html>
